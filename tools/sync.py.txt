@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""Merge an ECNL/AthleteOne feed dump into data.json.
+
+Usage: sync.py <feed.txt> <data.json> [label]
+Feed lines: id|date|time|homeTid|awayTid|hg|ag|venue  then '#TEAMS' then tid|name.
+Keeps pool, meta notes, manager-added fixtures (ids starting 'local-') and manual
+'postponed' flags. Prints a JSON diff summary.
+"""
+import json, sys, datetime, re
+feed_path, data_path = sys.argv[1], sys.argv[2]
+label = sys.argv[3] if len(sys.argv) > 3 else None
+data = json.load(open(data_path))
+teams = {t['name'].strip().lower(): t['id'] for t in data['teams']}
+lines = open(feed_path).read().strip().split('\n')
+sep = lines.index('#TEAMS')
+tgs = {}
+for l in lines[sep+1:]:
+    tid, name = l.split('|', 1)
+    key = name.strip().lower()
+    if key not in teams:
+        sys.exit(f'Unknown team in feed: {name!r}. Add it to data.teams first.')
+    tgs[tid] = teams[key]
+old = {m['id']: m for m in data['matches']}
+new_matches, changes = [], {'new_finals': [], 'changed_scores': [], 'new_fixtures': [], 'moved': [], 'removed': []}
+seen = set()
+def venue_fmt(v):
+    v = re.sub(r'\s+', ' ', v).strip()
+    return v.replace(' - ', ' · ') if v else None
+for l in lines[:sep]:
+    id_, date, time, h, a, hg, ag, venue = l.split('|')
+    seen.add(id_)
+    home, away = tgs[h], tgs[a]
+    hg = int(hg) if hg != '' else None
+    ag = int(ag) if ag != '' else None
+    prev = old.get(id_)
+    today = datetime.date.today().isoformat()
+    status = 'final' if hg is not None else ('unreported' if date < today else 'scheduled')
+    m = {'id': id_, 'date': date, 'home': home, 'away': away, 'hg': hg, 'ag': ag,
+         'time': time or None, 'venue': venue_fmt(venue), 'status': status, 'note': prev['note'] if prev else ''}
+    if prev and prev.get('status') == 'postponed' and hg is None and prev['date'] == date:
+        m['status'] = 'postponed'  # keep a manual postponement until the feed moves or scores it
+    if not prev:
+        changes['new_fixtures'].append(f"{date} {data['teams'][home]['short']} vs {data['teams'][away]['short']} ({id_})")
+    else:
+        if prev['hg'] is None and hg is not None:
+            changes['new_finals'].append(f"{date} {data['teams'][home]['short']} {hg}–{ag} {data['teams'][away]['short']}")
+        elif prev['hg'] is not None and (prev['hg'], prev['ag']) != (hg, ag):
+            changes['changed_scores'].append(f"{id_}: {prev['hg']}–{prev['ag']} → {hg}–{ag}")
+        if prev['date'] != date or (prev.get('time') and m['time'] and prev.get('time') != m['time']):
+            changes['moved'].append(f"{id_}: {prev['date']} {prev.get('time') or ''} → {date} {time}")
+    new_matches.append(m)
+for id_, prev in old.items():
+    if id_ not in seen:
+        if id_.startswith('local-'):
+            new_matches.append(prev)
+        else:
+            changes['removed'].append(f"{prev['date']} {data['teams'][prev['home']]['short']} vs {data['teams'][prev['away']]['short']} ({id_})")
+# flag double-booked Gold dates
+gold = data['meta'].get('gold', 7)
+by_date = {}
+for m in new_matches:
+    if gold in (m['home'], m['away']) and m['status'] != 'postponed':
+        by_date.setdefault(m['date'], []).append(m)
+for d, ms in by_date.items():
+    for m in ms:
+        if len(ms) > 1 and not m['note']:
+            m['note'] = 'Two LAFC Gold fixtures are listed on this date. Confirm with your team manager.'
+        elif len(ms) == 1 and m['note'].startswith('Two LAFC Gold'):
+            m['note'] = ''
+new_matches.sort(key=lambda m: (m['date'], m['time'] is None, m['time'] or ''))
+now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-7)))
+finals = sum(1 for m in new_matches if m['hg'] is not None)
+data['matches'] = new_matches
+data['meta']['snapshotLabel'] = label or now.strftime('%b %-d, %Y · %-I:%M %p PT')
+data['meta']['snapshotDay'] = now.strftime('%Y-%m-%d')
+data['meta']['lastChecked'] = now.isoformat(timespec='minutes')
+data['meta']['updatedBy'] = 'official ECNL results (auto-refresh)'
+json.dump(data, open(data_path, 'w'), separators=(',', ':'), ensure_ascii=False)
+summary = {'fixtures': len(new_matches), 'finals': finals, **{k: v for k, v in changes.items()}}
+print(json.dumps(summary, indent=1, ensure_ascii=False))
