@@ -1971,7 +1971,7 @@ function rankHistory(){const dates=[...new Set(finals().map(m=>m.date))].sort();
 function matchWeeks(){const map={};for(const m of matches){(map[m.date]=map[m.date]||[]).push(m)}return Object.keys(map).sort().map(d=>({date:d,games:map[d].sort((a,b)=>(a.home===GOLD||a.away===GOLD?-1:0)-(b.home===GOLD||b.away===GOLD?-1:0))}))}
 
 /* ---------- State ---------- */
-const state={tab:location.hash.replace('#','')||store.get('tab','home'),scout:GOLD,picks:store.get('picks',{}),name:store.get('name',''),boost:0,chaos:2.5,sim:null,gameId:null,gamesMode:'calendar',gamesTeam:'all',tableSort:'rank',search:'',mgr:false,mgrEdits:{},mgrNew:[],mgrPool:null,mgrRoster:null,mgrScorers:null,rep:{mid:null,rows:{}},flipped:null,bioOpen:false,canEdit:null,user:null,artifact:null,celebrated:false};
+const state={tab:'home'/* gl-start: always open on Matchday home (Pablo, Oct 18 2026) */,scout:GOLD,picks:store.get('picks',{}),name:store.get('name',''),boost:0,chaos:2.5,sim:null,gameId:null,gamesMode:'calendar',gamesTeam:'all',tableSort:'rank',search:'',mgr:false,mgrEdits:{},mgrNew:[],mgrPool:null,mgrRoster:null,mgrScorers:null,rep:{mid:null,rows:{}},flipped:null,bioOpen:false,canEdit:null,user:null,artifact:null,celebrated:false};
 const VALID=['home','table','games','practices','predict','squad','more'];
 if(state.tab.startsWith('event/')){state.eventId=state.tab.slice(6);state.tab='event'}
 if(!VALID.includes(state.tab)&&state.tab!=='event')state.tab='home';
@@ -2573,7 +2573,7 @@ function tour(start=0){state.tourStep=start;renderTour()}
 function renderTour(){let el=$('#tour');if(state.tourStep==null){if(el)el.remove();return}const steps=tourSteps();const i=Math.max(0,Math.min(steps.length-1,state.tourStep));const s=steps[i];const last=i===steps.length-1;
   if(!el){el=document.createElement('div');el.id='tour';el.className='tour';document.body.appendChild(el)}
   el.innerHTML=`<div class="tour-card"><button class="tour-skip" id="tour-skip">Skip</button><div class="tour-ico">${s.ico}</div><div class="eyebrow">Step ${i+1} of ${steps.length}</div><h3 class="display">${esc(s.title)}</h3><p>${esc(s.text)}</p><div class="tour-dots">${steps.map((_,k)=>`<i class="${k===i?'on':''}"></i>`).join('')}</div><div class="tour-actions">${s.tab?`<button class="btn ghost" id="tour-show">Show me</button>`:''}<button class="btn gold" id="tour-next">${last?'Let’s go ✦':'Next ›'}</button></div>${i===0?'<label class="small muted tour-dont"><input type="checkbox" id="tour-dont"> Don’t show this again</label>':''}</div>`;
-  const end=()=>{state.tourStep=null;try{localStorage.setItem('gold.tour','1')}catch(e){}el.remove()};
+  const end=()=>{state.tourStep=null;/* gl-tour: only the 'Don't show this again' box hides the tour (Pablo, Oct 18 2026) */el.remove()};
   $('#tour-skip').onclick=end;$('#tour-next').onclick=()=>{if(last){end();return}state.tourStep=i+1;el.classList.remove('tour-peek');renderTour()};
   const sh=$('#tour-show');if(sh)sh.onclick=()=>{el.classList.add('tour-peek');sh.textContent='Looking ✓';go(s.tab);setTimeout(()=>{const t=$(`.tabbar [data-tab="${s.tab}"],.topnav [data-tab="${s.tab}"]`);if(t){t.classList.add('tour-pulse');setTimeout(()=>t.classList.remove('tour-pulse'),1800)}},50)};
   const dc=$('#tour-dont');if(dc)dc.onchange=()=>{try{localStorage.setItem('gold.tour',dc.checked?'1':'')}catch(e){}}}
@@ -2691,7 +2691,7 @@ function rankHistory(){const dates=[...new Set(finals().map(m=>m.date))].sort();
 function matchWeeks(){const map={};for(const m of matches){(map[m.date]=map[m.date]||[]).push(m)}return Object.keys(map).sort().map(d=>({date:d,games:map[d].sort((a,b)=>(a.home===GOLD||a.away===GOLD?-1:0)-(b.home===GOLD||b.away===GOLD?-1:0))}))}
 
 /* ---------- State ---------- */
-const state={tab:location.hash.replace('#','')||store.get('tab','home'),scout:GOLD,picks:store.get('picks',{}),name:store.get('name',''),boost:0,chaos:2.5,sim:null,gameId:null,gamesMode:'calendar',gamesTeam:'all',tableSort:'rank',search:'',mgr:false,mgrEdits:{},mgrNew:[],mgrPool:null,mgrRoster:null,mgrScorers:null,rep:{mid:null,rows:{}},flipped:null,bioOpen:false,canEdit:null,user:null,artifact:null,celebrated:false};
+const state={tab:'home'/* gl-start: always open on Matchday home (Pablo, Oct 18 2026) */,scout:GOLD,picks:store.get('picks',{}),name:store.get('name',''),boost:0,chaos:2.5,sim:null,gameId:null,gamesMode:'calendar',gamesTeam:'all',tableSort:'rank',search:'',mgr:false,mgrEdits:{},mgrNew:[],mgrPool:null,mgrRoster:null,mgrScorers:null,rep:{mid:null,rows:{}},flipped:null,bioOpen:false,canEdit:null,user:null,artifact:null,celebrated:false};
 const VALID=['home','table','games','practices','predict','squad','more'];
 if(state.tab.startsWith('event/')){state.eventId=state.tab.slice(6);state.tab='event'}
 if(!VALID.includes(state.tab)&&state.tab!=='event')state.tab='home';
@@ -3293,7 +3293,7 @@ function tour(start=0){state.tourStep=start;renderTour()}
 function renderTour(){let el=$('#tour');if(state.tourStep==null){if(el)el.remove();return}const steps=tourSteps();const i=Math.max(0,Math.min(steps.length-1,state.tourStep));const s=steps[i];const last=i===steps.length-1;
   if(!el){el=document.createElement('div');el.id='tour';el.className='tour';document.body.appendChild(el)}
   el.innerHTML=`<div class="tour-card"><button class="tour-skip" id="tour-skip">Skip</button><div class="tour-ico">${s.ico}</div><div class="eyebrow">Step ${i+1} of ${steps.length}</div><h3 class="display">${esc(s.title)}</h3><p>${esc(s.text)}</p><div class="tour-dots">${steps.map((_,k)=>`<i class="${k===i?'on':''}"></i>`).join('')}</div><div class="tour-actions">${s.tab?`<button class="btn ghost" id="tour-show">Show me</button>`:''}<button class="btn gold" id="tour-next">${last?'Let’s go ✦':'Next ›'}</button></div>${i===0?'<label class="small muted tour-dont"><input type="checkbox" id="tour-dont"> Don’t show this again</label>':''}</div>`;
-  const end=()=>{state.tourStep=null;try{localStorage.setItem('gold.tour','1')}catch(e){}el.remove()};
+  const end=()=>{state.tourStep=null;/* gl-tour: only the 'Don't show this again' box hides the tour (Pablo, Oct 18 2026) */el.remove()};
   $('#tour-skip').onclick=end;$('#tour-next').onclick=()=>{if(last){end();return}state.tourStep=i+1;el.classList.remove('tour-peek');renderTour()};
   const sh=$('#tour-show');if(sh)sh.onclick=()=>{el.classList.add('tour-peek');sh.textContent='Looking ✓';go(s.tab);setTimeout(()=>{const t=$(`.tabbar [data-tab="${s.tab}"],.topnav [data-tab="${s.tab}"]`);if(t){t.classList.add('tour-pulse');setTimeout(()=>t.classList.remove('tour-pulse'),1800)}},50)};
   const dc=$('#tour-dont');if(dc)dc.onchange=()=>{try{localStorage.setItem('gold.tour',dc.checked?'1':'')}catch(e){}}}
